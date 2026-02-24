@@ -1,4 +1,4 @@
-# EduYatra Frontend
+# EduYatra 
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://eduyatra.vercel.app)
 
