@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Token Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4F46E5;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #D1FAE5;
+            color: #065F46;
+            border: 2px solid #10B981;
+        }
+        .error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 2px solid #EF4444;
+        }
+        .info {
+            background: #E0E7FF;
+            color: #3730A3;
+            border: 2px solid #6366F1;
+        }
+        .token-display {
+            background: #F3F4F6;
+            padding: 15px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+        button.danger {
+            background: #EF4444;
+        }
+        button.danger:hover {
+            background: #DC2626;
+        }
+        pre {
+            background: #1F2937;
+            color: #F9FAFB;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Super Admin Token Checker</h1>
+        <p>This tool helps you debug the super admin authentication.</p>
+        
+        <div id="results"></div>
+        
+        <button onclick="checkToken()">🔍 Check Current Token</button>
+        <button onclick="checkLocalStorage()">📦 Check LocalStorage</button>
+        <button onclick="clearStorage()" class="danger">🗑️ Clear All Storage</button>
+        <button onclick="testLogin()">🔐 Test Login</button>
+    </div>
+
+    <script>
+        function displayResult(html) {
+            document.getElementById('results').innerHTML = html;
+        }
+
+        function checkToken() {
+            let html = '<h3>Token Analysis</h3>';
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                html += '<div class="status error">❌ No token found in localStorage</div>';
+                html += '<p>Please login first at <a href="/signin">/signin</a></p>';
+                displayResult(html);
+                return;
+            }
+
+            try {
+                // Decode JWT token
+                const parts = token.split('.');
+                const payload = JSON.parse(atob(parts[1]));
+                
+                html += '<div class="status success">✅ Token found and decoded successfully</div>';
+                
+                // Check email
+                if (payload.email === 'admin@gmail.com') {
+                    html += '<div class="status success">✅ Email is admin@gmail.com</div>';
+                } else {
+                    html += '<div class="status error">❌ Email is NOT admin@gmail.com (found: ' + payload.email + ')</div>';
+                }
+                
+                // Check isSuperAdmin flag
+                if (payload.isSuperAdmin === true) {
+                    html += '<div class="status success">✅ isSuperAdmin flag is TRUE in token</div>';
+                } else {
+                    html += '<div class="status error">❌ isSuperAdmin flag is ' + payload.isSuperAdmin + ' in token</div>';
+                }
+                
+                // Check role
+                if (payload.role === 'admin') {
+                    html += '<div class="status success">✅ Role is admin</div>';
+                } else {
+                    html += '<div class="status error">❌ Role is ' + payload.role + '</div>';
+                }
+                
+                html += '<h4>Full Token Payload:</h4>';
+                html += '<pre>' + JSON.stringify(payload, null, 2) + '</pre>';
+                
+            } catch (error) {
+                html += '<div class="status error">❌ Error decoding token: ' + error.message + '</div>';
+            }
+            
+            displayResult(html);
+        }
+
+        function checkLocalStorage() {
+            let html = '<h3>LocalStorage Analysis</h3>';
+            
+            const token = localStorage.getItem('token');
+            const role = localStorage.getItem('role');
+            const isSuperAdmin = localStorage.getItem('isSuperAdmin');
+            const userProfile = localStorage.getItem('userProfile');
+            
+            html += '<h4>Stored Values:</h4>';
+            html += '<div class="token-display">';
+            html += '<strong>token:</strong> ' + (token ? token.substring(0, 50) + '...' : 'NOT SET') + '<br>';
+            html += '<strong>role:</strong> ' + (role || 'NOT SET') + '<br>';
+            html += '<strong>isSuperAdmin:</strong> ' + (isSuperAdmin || 'NOT SET') + '<br>';
+            html += '<strong>userProfile:</strong> ' + (userProfile || 'NOT SET') + '<br>';
+            html += '</div>';
+            
+            // Check isSuperAdmin specifically
+            if (isSuperAdmin === 'true') {
+                html += '<div class="status success">✅ isSuperAdmin is "true" in localStorage</div>';
+            } else {
+                html += '<div class="status error">❌ isSuperAdmin is "' + isSuperAdmin + '" in localStorage (should be "true")</div>';
+            }
+            
+            if (userProfile) {
+                try {
+                    const profile = JSON.parse(userProfile);
+                    html += '<h4>User Profile:</h4>';
+                    html += '<pre>' + JSON.stringify(profile, null, 2) + '</pre>';
+                } catch (e) {
+                    html += '<div class="status error">❌ Error parsing userProfile</div>';
+                }
+            }
+            
+            displayResult(html);
+        }
+
+        function clearStorage() {
+            if (confirm('Are you sure you want to clear all storage? You will be logged out.')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                displayResult('<div class="status success">✅ All storage cleared! Please login again.</div>');
+            }
+        }
+
+        async function testLogin() {
+            const email = prompt('Enter email:', 'admin@gmail.com');
+            const password = prompt('Enter password:');
+            
+            if (!email || !password) {
+                displayResult('<div class="status error">❌ Login cancelled</div>');
+                return;
+            }
+            
+            let html = '<h3>Login Test</h3>';
+            html += '<div class="status info">Testing login with email: ' + email + '</div>';
+            
+            try {
+                const API_URL = 'http://localhost:5000/api';
+                const response = await fetch(API_URL + '/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    html += '<div class="status success">✅ Login successful!</div>';
+                    html += '<h4>Server Response:</h4>';
+                    html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    
+                    if (data.isSuperAdmin === true) {
+                        html += '<div class="status success">✅ Server returned isSuperAdmin: true</div>';
+                    } else {
+                        html += '<div class="status error">❌ Server returned isSuperAdmin: ' + data.isSuperAdmin + '</div>';
+                    }
+                    
+                    // Save to localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('role', data.role);
+                    localStorage.setItem('isSuperAdmin', data.isSuperAdmin ? 'true' : 'false');
+                    
+                    html += '<div class="status success">✅ Saved to localStorage</div>';
+                    html += '<p><a href="/admin">Go to Admin Dashboard</a></p>';
+                } else {
+                    html += '<div class="status error">❌ Login failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            } catch (error) {
+                html += '<div class="status error">❌ Network error: ' + error.message + '</div>';
+                html += '<p>Make sure backend is running on http://localhost:5000</p>';
+            }
+            
+            displayResult(html);
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html>
